@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f36b8">
+<title>Kasir Cahaya 77</title>
+<style>
+/* Kasir mandiri: dibuka langsung di Chrome, jadi bisa membuka RawBT, menu Bagikan, dan jendela cetak. */
+:root {
+  --bg: #f2f4f9; --surface: #ffffff; --ink: #141a2e; --muted: #5a6380; --line: #dce1ed;
+  --accent: #2340c9; --on-accent: #ffffff; --accent-soft: #e3e8fb;
+  --sign: #1f36b8; --sign-ink: #ffffff; --sign-muted: #c9d2ff;
+  --tag: #ffd43b; --tag-ink: #1d1a05; --ok: #15803d; --danger: #b91c1c; --stage: #dfe4ef;
+  --mono: ui-monospace, "Cascadia Mono", "Roboto Mono", "Courier New", monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1220; --surface: #171c2e; --ink: #e8ebf5; --muted: #98a1bd; --line: #283050;
+    --accent: #8ea2ff; --on-accent: #0e1220; --accent-soft: #232d5c;
+    --sign: #1b2a85; --sign-muted: #b4c0ff; --tag: #f5c518; --ok: #4ade80; --danger: #f87171; --stage: #0a0d19;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1220; --surface: #171c2e; --ink: #e8ebf5; --muted: #98a1bd; --line: #283050;
+  --accent: #8ea2ff; --on-accent: #0e1220; --accent-soft: #232d5c;
+  --sign: #1b2a85; --sign-muted: #b4c0ff; --tag: #f5c518; --ok: #4ade80; --danger: #f87171; --stage: #0a0d19;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+button, input, select { font: inherit; color: inherit; }
+input, select { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; width: 100%; min-width: 0; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h2 { margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); font-weight: 600; }
+.hint { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-weight: 600; cursor: pointer; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.ghost { background: transparent; }
+.btn.sm { min-height: 36px; padding: 4px 10px; font-size: 13px; }
+.btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn:disabled { opacity: .55; }
+
+.sign { background: var(--sign); color: var(--sign-ink); padding: calc(18px + env(safe-area-inset-top)) 0 18px; }
+.eyebrow { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--sign-muted); font-weight: 600; }
+h1 { margin: 2px 0 0; font-size: clamp(28px, 7vw, 40px); font-weight: 800; line-height: 1.05; overflow-wrap: anywhere; }
+.meta { color: var(--sign-muted); font-size: 14px; margin-top: 4px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.sync { background: transparent; border: 1px solid color-mix(in srgb, var(--sign-ink) 40%, transparent); color: var(--sign-ink); border-radius: 6px; padding: 3px 10px; font-size: 13px; cursor: pointer; }
+.sync:disabled { opacity: .6; }
+.hint a { color: var(--accent); }
+
+main { padding-block: 16px 40px; }
+.app { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 760px) { .app { grid-template-columns: minmax(0, 1fr); } }
+.col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+
+.items { list-style: none; margin: 10px 0 0; padding: 0; max-height: 46vh; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; }
+.items li { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 12px; border-top: 1px solid var(--line); }
+.items li:first-child { border-top: 0; }
+.items .nm { flex: 1; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.items .sub { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+.tag { font: 700 14px var(--mono); background: var(--tag); color: var(--tag-ink); padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+.add { flex: none; width: 42px; height: 42px; border-radius: 10px; border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent); font-size: 24px; font-weight: 700; line-height: 1; cursor: pointer; position: relative; }
+.add .q { position: absolute; top: -7px; right: -7px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--tag); color: var(--tag-ink); font: 700 12px/20px var(--mono); }
+.none { padding: 14px; color: var(--muted); text-align: center; }
+
+.lines { display: flex; flex-direction: column; gap: 10px; }
+.line { display: grid; grid-template-columns: 4rem .8rem minmax(0, 1fr) 2.6rem; gap: 6px 8px; align-items: center; padding: 10px; background: var(--bg); border-radius: 8px; }
+.line .name { grid-column: 1 / 4; text-transform: uppercase; }
+.line .x { text-align: center; color: var(--muted); }
+.line .st { grid-column: 1 / -1; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.line input { background: var(--surface); }
+.line .del { min-height: 40px; padding: 0; font-size: 20px; }
+.sum { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.big { font: 700 24px var(--mono); }
+.chg { font-weight: 600; }
+.chg.ok { color: var(--ok); } .chg.short { color: var(--danger); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.actions .btn { flex: 1 1 160px; }
+#status { min-height: 1.3em; margin: 10px 0 0; font-size: 14px; color: var(--ok); }
+#status.bad { color: var(--danger); }
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fields .full { grid-column: 1 / -1; }
+@media (max-width: 460px) { .fields { grid-template-columns: 1fr; } }
+label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); font-weight: 500; }
+details summary { cursor: pointer; font-weight: 600; }
+details[open] summary { margin-bottom: 10px; }
+.help ol { margin: 6px 0 0; padding-left: 1.2rem; font-size: 14px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; }
+
+.stage { background: var(--stage); border-radius: 10px; padding: 16px 10px; display: flex; justify-content: center; overflow-x: auto; }
+.nota { background: #fff; color: #111; font: 11px/1.4 var(--mono); padding: 5mm 4mm; max-width: 100%; flex: none; box-shadow: 0 2px 14px rgba(0,0,0,.22); white-space: pre; }
+.nota.p58 { width: 58mm; font-size: 10.5px; }
+.nota.p80 { width: 80mm; font-size: 12.5px; }
+.nota.pA5 { width: 148mm; font-size: 14px; padding: 12mm; }
+.nota b { font-weight: 700; }
+.nota .bigl { font-size: 1.5em; font-weight: 700; }
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 8px; font-size: 14px; z-index: 30; max-width: calc(100vw - 32px); }
+
+@media print {
+  body { background: #fff; }
+  body * { visibility: hidden !important; }
+  #nota, #nota * { visibility: visible !important; }
+  #nota { position: absolute; left: 0; top: 0; box-shadow: none; padding: 0; }
+}
+</style>
+</head>
+<body>
+<header class="sign">
+  <div class="wrap">
+    <div class="eyebrow">Kasir</div>
+    <h1 id="shopTitle">CAHAYA 77</h1>
+    <div class="meta"><span id="meta"></span> <button type="button" id="syncBtn" class="sync">Muat ulang harga</button></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="app">
+    <div class="col">
+      <section class="card">
+        <h2>Daftar harga</h2>
+        <input id="q" type="search" placeholder="Cari barang…" aria-label="Cari barang" autocomplete="off">
+        <ul class="items" id="list"></ul>
+      </section>
+
+      <section class="card">
+        <h2>Nota</h2>
+        <div class="lines" id="rows"></div>
+        <div class="actions" style="margin-top:10px">
+          <button type="button" class="btn ghost sm" id="addRow" style="flex:none">+ Baris kosong</button>
+        </div>
+        <label class="f" style="margin-top:12px">Bayar tunai (Rp)
+          <input id="pay" type="number" inputmode="numeric" min="0" step="any" placeholder="0">
+        </label>
+        <div class="sum">
+          <div><div class="hint" style="margin:0">Total belanja</div><div class="big" id="total">Rp 0</div></div>
+          <div class="chg" id="chg"></div>
+        </div>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="card">
+        <h2>Cetak</h2>
+        <div class="actions">
+          <button type="button" class="btn primary" id="rawbtBtn">Cetak ke printer (RawBT)</button>
+          <button type="button" class="btn primary" id="shareBtn">Bagikan ke aplikasi lain</button>
+          <button type="button" class="btn" id="printBtn">Cetak lewat browser</button>
+          <button type="button" class="btn" id="copyBtn">Salin teks nota</button>
+          <button type="button" class="btn ghost" id="newBtn">Nota baru</button>
+        </div>
+        <p id="status" role="status" aria-live="polite"></p>
+        <details class="help">
+          <summary>Cara mencetak</summary>
+          <ol>
+            <li><b>RawBT.</b> Pasang RawBT dari Play Store, pasangkan printer thermal lewat Bluetooth, pilih printer itu di RawBT. Lalu ketuk “Cetak ke printer (RawBT)”.</li>
+            <li><b>Bagikan ke aplikasi lain.</b> Membuka menu Bagikan Android berisi gambar nota. Pilih aplikasi printer thermal apa pun, WhatsApp, Telegram, Galeri, atau aplikasi lain.</li>
+            <li><b>Cetak lewat browser.</b> Membuka jendela cetak Android/komputer, cocok untuk printer biasa.</li>
+          </ol>
+        </details>
+      </section>
+
+      <section class="card">
+        <h2>Pratinjau nota</h2>
+        <div class="stage"><div class="nota p58" id="nota"></div></div>
+      </section>
+
+      <section class="card">
+        <details>
+          <summary>Pengaturan</summary>
+          <div class="fields">
+            <label class="f full">Ukuran kertas
+              <select id="sPaper"><option value="58">Struk 58 mm</option><option value="80">Struk 80 mm</option><option value="A5">Kertas A5</option></select>
+            </label>
+          </div>
+          <p class="hint">Harga barang ada di tab <b>Harga</b>, sedangkan nama kios, alamat, telepon, dan ucapan nota ada di tab <b>Kios</b> pada <a id="sheetLink" href="#" target="_blank" rel="noopener">Google Sheet daftar harga</a>. Ubah di sana, lalu ketuk “Muat ulang harga”.</p>
+        </details>
+      </section>
+    </div>
+  </div>
+</main>
+
+<script>
+(() => {
+  'use strict';
+  /* Harga dan data kop nota dibaca dari Google Sheet (harus dibuka "siapa saja yang punya link: pelihat").
+     Data terakhir disimpan di perangkat untuk dipakai saat offline; data bawaan di bawah hanya cadangan pertama. */
+  const SHEET_ID = '1EfzW4Fj_BmOhbhaWKnvF8yHM2RypORitKf8EHFVia94';
+  const SHEET_URL = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/edit';
+  const csvUrl = (tab, range) => 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&headers=1&sheet=' + encodeURIComponent(tab) + (range ? '&range=' + range : '') + '&t=' + Date.now();
+  let PRICES = [{"n":"Air Nestle 330 ml","h":60000,"s":"dus","k":"Minuman"},{"n":"Aqua 1500 ml","h":80000,"s":"dus","k":""},{"n":"Aqua 330 ml","h":59000,"s":"dus","k":""},{"n":"Aqua 600 ml","h":72000,"s":"dus","k":""},{"n":"Aspro 16","h":25000,"s":"pcs","k":"Rokok"},{"n":"Ayam","h":45000,"s":"ekor","k":"Sembako"},{"n":"Bantal Kepala","h":55000,"s":"pcs","k":"Perabot Rumah"},{"n":"Beras 99 10 kg","h":188000,"s":"karung","k":"Beras"},{"n":"Beras 99 20 kg","h":362000,"s":"Karung","k":"Beras"},{"n":"Beras 99 5 kg","h":103000,"s":"karung","k":"Beras"},{"n":"Beras Betet 10 kg","h":185000,"s":"karung","k":""},{"n":"Beras Betet 5 kg","h":98000,"s":"karung","k":"Beras"},{"n":"Beras Biasa 10 kg","h":163000,"s":"karung","k":"Beras"},{"n":"Beras Biasa 5 kg","h":85000,"s":"karung","k":"Beras"},{"n":"Beras Bonek 10 kg","h":177000,"s":"karung","k":"Beras"},{"n":"Beras Bonek 5 kg","h":86000,"s":"karung","k":"Beras"},{"n":"Beras Kano 10 kg","h":178000,"s":"karung","k":"Beras"},{"n":"Beras Kano 5 kg","h":92000,"s":"karung","k":"Beras"},{"n":"Beras Kuning 10 kg","h":174000,"s":"karung","k":""},{"n":"Beras Kuning 5 kg","h":87000,"s":"karung","k":""},{"n":"Beras Pilates 10 kg","h":168000,"s":"karung","k":"Beras"},{"n":"Beras Pilates 20 kg","h":310000,"s":"karung","k":""},{"n":"Beras Pilates 5 kg","h":85000,"s":"karung","k":"Beras"},{"n":"Beras SPHP 5 kg","h":70000,"s":"karung","k":"Beras"},{"n":"Beras Walet 10 kg","h":167000,"s":"karung","k":"Beras"},{"n":"Beras Walet 20 kg","h":327000,"s":"karung","k":"Beras"},{"n":"Bola besar","h":27000,"s":"Pcs","k":""},{"n":"Bola kecil","h":23000,"s":"Pieces","k":""},{"n":"Bola sedang","h":25000,"s":"Pcs","k":""},{"n":"Buavita Besar","h":29000,"s":"pcs","k":""},{"n":"Ember 12","h":25000,"s":"pcs","k":"Perabot Rumah"},{"n":"Ember 16","h":30000,"s":"pcs","k":"Perabot Rumah"},{"n":"Ember 18","h":32000,"s":"pcs","k":"Perabot Rumah"},{"n":"Ember 22","h":30000,"s":"pcs","k":"Perabot Rumah"},{"n":"Galon baru + isi air","h":79000,"s":"galon","k":"Minuman"},{"n":"Gelas Plastik","h":48000,"s":"lusin","k":"Perabot Rumah"},{"n":"Hydro Coco","h":14000,"s":"pcs","k":"Minuman"},{"n":"Kantong Merah","h":62000,"s":"pak","k":"Lainnya"},{"n":"Karpet Kecil Tipis","h":35000,"s":"lembar","k":""},{"n":"Karpet Tebal Kecil","h":80000,"s":"lembar","k":""},{"n":"Karpet Tebal Panjang","h":120000,"s":"lembar","k":""},{"n":"Kasur Lipat","h":230000,"s":"pcs","k":"Perabot Rumah"},{"n":"Kopi Kapal Api 350 g","h":38000,"s":"bungkus","k":""},{"n":"Kopi Kapal Api 60 g","h":12000,"s":"bungkus","k":"Minuman"},{"n":"Kopi Kapal Api 90 g","h":18000,"s":"bungkus","k":"Minuman"},{"n":"Le Minerale 1500 ml","h":87000,"s":"dus","k":""},{"n":"Le Minerale 330 ml","h":60000,"s":"dus","k":"Minuman"},{"n":"Le Minerale 600 ml","h":84000,"s":"dus","k":"Minuman"},{"n":"Minyak Bimoli 1 L","h":30000,"s":"Pcs","k":""},{"n":"Minyak Bimoli 2 L","h":55000,"s":"Pcs","k":""},{"n":"Minyak Bimoli 5 L","h":125000,"s":"jeriken","k":"Sembako"},{"n":"Minyak botol kecil","h":8000,"s":"Botol","k":""},{"n":"Minyak Mubarok 5 L","h":123000,"s":"jeriken","k":"Sembako"},{"n":"Pel Besar","h":45000,"s":"pcs","k":"Perabot Rumah"},{"n":"Pel Kecil","h":35000,"s":"pcs","k":"Perabot Rumah"},{"n":"Qualala 1500 ml","h":79000,"s":"dus","k":""},{"n":"Qualala 330 ml","h":55000,"s":"dus","k":""},{"n":"Qualala 600 ml","h":70000,"s":"dus","k":""},{"n":"Qualala Gelas","h":45000,"s":"dus","k":""},{"n":"Rokok Esse Double","h":433000,"s":"slop","k":""},{"n":"Rokok LA Bold","h":382000,"s":"slop","k":""},{"n":"Rokok LA Ice Purple","h":346000,"s":"slop","k":""},{"n":"Rokok Troy","h":288000,"s":"slop","k":""},{"n":"Rokok W. Kopi Jambu","h":135000,"s":"slop","k":""},{"n":"Sapu Lidi Gagang","h":40000,"s":"pcs","k":""},{"n":"Surya 16 Cokelat","h":38000,"s":"pcs","k":""},{"n":"Tabung Gas Besar (beli baru)","h":680000,"s":"tabung","k":""},{"n":"Tabung Gas Kecil (beli baru)","h":550000,"s":"tabung","k":""},{"n":"Tukar Refil Tabung Besar","h":275000,"s":"tabung","k":""},{"n":"Tukar Refil Tabung Kecil","h":144000,"s":"tabung","k":"Gas"},{"n":"Vit 1 L","h":33000,"s":"dus","k":""}];
+  const META = {"nama":"CAHAYA 77","alamat":"JL. SPG Teruna Bhakti Perumnas II, Heram, Waena.","tanggal":"2 Nov 2026"};
+
+  const $ = (s) => document.querySelector(s);
+  const nf = new Intl.NumberFormat('id-ID');
+  const nfq = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 3 });
+  const num = (v) => { const x = parseFloat(v); return isFinite(x) && x > 0 ? x : 0; };
+  const money = (n) => nf.format(Math.round(n));
+  const rp = (n) => 'Rp ' + money(n);
+  const pad = (n, w) => String(n).padStart(w || 2, '0');
+  const norm = (s) => String(s || '').toLowerCase().trim();
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const store = {
+    get: (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+    set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+  };
+  function toast(msg) {
+    const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+    document.body.append(t); setTimeout(() => t.remove(), 2200);
+  }
+  let statusTimer;
+  function say(msg, bad) { const s = $('#status'); s.textContent = msg; s.className = bad ? 'bad' : ''; clearTimeout(statusTimer); statusTimer = setTimeout(() => { s.textContent = ''; }, bad ? 9000 : 6000); }
+
+  /* ---------- pengaturan ---------- */
+  const settings = Object.assign({ name: META.nama || 'CAHAYA 77', address: META.alamat || '', phone: '', footer: 'Terima kasih, selamat berbelanja lagi', paper: '58' },
+    store.get('k77.kios', {}), { paper: (store.get('k77.settings', {}).paper) || '58' });
+  const saveSettings = () => store.set('k77.settings', { paper: settings.paper });
+  { const cached = store.get('k77.prices', null); if (Array.isArray(cached) && cached.length) PRICES = cached; }
+
+  /* ---------- ambil data dari Google Sheet ---------- */
+  function parseCSV(text) {
+    const rows = []; let row = [], cur = '', q = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (q) {
+        if (ch === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; }
+        else cur += ch;
+      } else if (ch === '"') q = true;
+      else if (ch === ',') { row.push(cur); cur = ''; }
+      else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(cur); rows.push(row); row = []; cur = ''; }
+      else cur += ch;
+    }
+    if (cur || row.length) { row.push(cur); rows.push(row); }
+    return rows;
+  }
+  const toNum = (s) => { const d = String(s || '').replace(/[^\d]/g, ''); return d ? parseInt(d, 10) : NaN; };
+  async function getCsv(tab, range) {
+    const r = await fetch(csvUrl(tab, range), { cache: 'no-store' });
+    const t = await r.text();
+    if (!r.ok || /^\s*</.test(t)) throw new Error(r.status === 401 || /^\s*</.test(t) ? 'akses' : 'http ' + r.status);
+    return parseCSV(t);
+  }
+  const timeStr = (iso) => { try { const d = new Date(iso); return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); } catch { return ''; } };
+  function showMeta(note) {
+    const at = store.get('k77.syncedAt', null);
+    $('#meta').textContent = PRICES.length + ' barang · ' + (note || (at ? 'harga dari Google Sheet, ' + timeStr(at) : 'harga per ' + META.tanggal));
+  }
+  let syncing = false;
+  async function syncSheet(manual) {
+    if (syncing) return; syncing = true; $('#syncBtn').disabled = true; $('#syncBtn').textContent = 'Memuat…';
+    try {
+      const [h, k] = await Promise.all([getCsv('Harga'), getCsv('Kios', 'A1:B20')]);
+      const list = h.slice(1).map((r) => ({ n: (r[0] || '').trim(), h: toNum(r[1]), s: (r[2] || '').trim() || 'pcs', k: (r[3] || '').trim() }))
+        .filter((p) => p.n && p.h > 0).sort((a, b) => a.n.localeCompare(b.n, 'id'));
+      if (!list.length) throw new Error('kosong');
+      PRICES = list;
+      const kv = {}; k.slice(1).forEach((r) => { if (r[0]) kv[norm(r[0])] = (r[1] || '').trim(); });
+      const kios = { name: kv['nama kios'] || settings.name, address: kv['alamat'] ?? settings.address, phone: kv['telepon / wa'] ?? settings.phone, footer: kv['ucapan di bawah nota'] ?? settings.footer };
+      Object.assign(settings, kios);
+      store.set('k77.prices', PRICES); store.set('k77.kios', kios); store.set('k77.syncedAt', new Date().toISOString());
+      $('#shopTitle').textContent = settings.name || 'KIOS';
+      showMeta(); renderAll();
+      if (manual) toast('Harga diperbarui dari Google Sheet');
+    } catch (e) {
+      const msg = e && e.message === 'akses' ? 'Google Sheet belum dibuka untuk dibaca' : 'harga terbaru belum bisa diambil (cek internet, atau akses Google Sheet)';
+      showMeta('memakai data tersimpan, ' + msg);
+      if (manual) say('Gagal memuat: ' + msg + '. Kasir tetap jalan dengan data tersimpan.', true);
+    } finally { syncing = false; $('#syncBtn').disabled = false; $('#syncBtn').textContent = 'Muat ulang harga'; }
+  }
+
+  /* ---------- nota ---------- */
+  const today = () => { const d = new Date(); return '' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()); };
+  let counter = store.get('k77.counter', { date: today(), n: 1 });
+  if (counter.date !== today()) counter = { date: today(), n: 1 };
+  const noteNo = () => 'C77-' + counter.date + '-' + pad(counter.n, 3);
+  let uid = 0;
+  const newItem = (name, qty, price) => ({ id: ++uid, name: name || '', qty: qty || 1, price: price || 0 });
+  const state = { no: noteNo(), when: new Date(), pay: '', items: [] };
+
+  function calc() {
+    const lines = state.items.filter((i) => i.name.trim() || num(i.price) > 0).map((i) => {
+      const q = num(i.qty), p = num(i.price);
+      return { name: i.name.trim() || 'BARANG', qty: q, price: p, sub: q * p };
+    });
+    const total = lines.reduce((a, l) => a + l.sub, 0), pay = num(state.pay);
+    return { lines, total, pay, diff: pay - total };
+  }
+  const fmtWhen = () => { const d = state.when; return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+  const qtyInNota = (name) => { const k = norm(name); return state.items.reduce((a, x) => a + (norm(x.name) === k ? num(x.qty) : 0), 0); };
+
+  /* ---------- daftar harga ---------- */
+  function renderList() {
+    const q = norm($('#q').value);
+    const list = PRICES.filter((p) => !q || norm(p.n).includes(q) || norm(p.k).includes(q));
+    if (!list.length) { $('#list').innerHTML = '<li class="none">Tidak ada yang cocok. Isi manual lewat “+ Baris kosong”.</li>'; return; }
+    $('#list').innerHTML = list.map((p) => {
+      const i = PRICES.indexOf(p), inN = qtyInNota(p.n);
+      return '<li><span class="nm">' + esc(p.n) + '<span class="sub">per ' + esc(p.s) + (p.k ? ' · ' + esc(p.k) : '') + '</span></span>' +
+        '<span class="tag">' + rp(p.h) + '</span>' +
+        '<button type="button" class="add" data-i="' + i + '" aria-label="Tambah ' + esc(p.n) + ' ke nota">+' + (inN ? '<span class="q">' + nfq.format(inN) + '</span>' : '') + '</button></li>';
+    }).join('');
+  }
+  $('#q').addEventListener('input', renderList);
+  $('#list').addEventListener('click', (e) => {
+    const b = e.target.closest('.add'); if (!b) return;
+    const p = PRICES[+b.dataset.i]; if (!p) return;
+    const name = p.n.toUpperCase();
+    const ex = state.items.find((x) => norm(x.name) === norm(name) && num(x.price) === p.h);
+    const empty = state.items.find((x) => !x.name.trim() && !num(x.price));
+    if (ex) ex.qty = num(ex.qty) + 1;
+    else if (empty) { empty.name = name; empty.price = p.h; empty.qty = 1; }
+    else state.items.push(newItem(name, 1, p.h));
+    renderRows(); renderAll();
+    toast('Masuk nota: ' + p.n + ' (' + nfq.format(qtyInNota(p.n)) + ')');
+  });
+
+  /* ---------- baris nota ---------- */
+  function renderRows() {
+    if (!state.items.length) { $('#rows').innerHTML = '<div class="none">Belum ada barang. Ketuk + di daftar harga.</div>'; return; }
+    $('#rows').innerHTML = state.items.map((it) =>
+      '<div class="line" data-id="' + it.id + '">' +
+      '<input class="name" data-f="name" type="text" autocomplete="off" placeholder="Nama barang" aria-label="Nama barang" value="' + esc(it.name) + '">' +
+      '<button type="button" class="btn del" data-act="del" aria-label="Hapus baris">×</button>' +
+      '<input data-f="qty" type="number" inputmode="decimal" min="0" step="any" placeholder="Jml" aria-label="Jumlah" value="' + (it.qty || '') + '">' +
+      '<span class="x">×</span>' +
+      '<input data-f="price" type="number" inputmode="numeric" min="0" step="any" placeholder="Harga satuan" aria-label="Harga satuan" value="' + (it.price || '') + '" style="grid-column:3/5">' +
+      '<span class="st">' + rp(num(it.qty) * num(it.price)) + '</span></div>').join('');
+  }
+  $('#rows').addEventListener('input', (e) => {
+    const row = e.target.closest('.line'); if (!row || !e.target.dataset.f) return;
+    const it = state.items.find((x) => x.id === +row.dataset.id); if (!it) return;
+    it[e.target.dataset.f] = e.target.dataset.f === 'name' ? e.target.value.toUpperCase() : e.target.value;
+    row.querySelector('.st').textContent = rp(num(it.qty) * num(it.price));
+    renderAll(false);
+  });
+  $('#rows').addEventListener('change', (e) => {
+    if (e.target.dataset.f !== 'name') return;
+    const row = e.target.closest('.line');
+    const it = state.items.find((x) => x.id === +row.dataset.id);
+    const hit = it && PRICES.find((p) => norm(p.n) === norm(it.name));
+    if (hit && !num(it.price)) { it.price = hit.h; renderRows(); renderAll(); }
+  });
+  $('#rows').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-act=del]'); if (!b) return;
+    const id = +b.closest('.line').dataset.id;
+    state.items = state.items.filter((x) => x.id !== id);
+    renderRows(); renderAll();
+  });
+  $('#addRow').addEventListener('click', () => {
+    state.items.push(newItem()); renderRows(); renderAll();
+    const ins = document.querySelectorAll('#rows .name'); if (ins.length) ins[ins.length - 1].focus();
+  });
+  $('#pay').addEventListener('input', (e) => { state.pay = e.target.value; renderAll(false); });
+
+  /* ---------- isi nota (dipakai untuk pratinjau, teks, gambar, dan printer) ---------- */
+  function wrap(s, w) {
+    const out = []; let line = '';
+    String(s).split(/\s+/).forEach((word) => {
+      if (!word) return;
+      if ((line ? line + ' ' + word : word).length <= w) { line = line ? line + ' ' + word : word; return; }
+      if (line) out.push(line);
+      line = word;
+      while (line.length > w) { out.push(line.slice(0, w)); line = line.slice(w); }
+    });
+    if (line) out.push(line);
+    return out.length ? out : [''];
+  }
+  const ascii = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\x20-\x7e]/g, '?');
+  const cols = () => settings.paper === '58' ? 32 : 48;
+  function receiptLines(W) {
+    const c = calc(), out = [];
+    const lr = (l, r) => l + ' '.repeat(Math.max(1, W - l.length - r.length)) + r;
+    const dash = '-'.repeat(W);
+    const add = (s, o) => out.push(Object.assign({ s: ascii(s) }, o || {}));
+    wrap((settings.name || 'KIOS').toUpperCase(), Math.floor(W / 2)).forEach((s) => add(s, { c: 1, b: 1, big: 1 }));
+    if (settings.address.trim()) wrap(settings.address.trim(), W).forEach((s) => add(s, { c: 1 }));
+    if (settings.phone.trim()) add('Telp/WA ' + settings.phone.trim(), { c: 1 });
+    add(dash);
+    add(lr('No', state.no));
+    add(lr('Tanggal', fmtWhen()));
+    add(dash);
+    if (!c.lines.length) add('(belum ada barang)', { c: 1 });
+    c.lines.forEach((l) => {
+      wrap(l.name, W).forEach((s) => add(s));
+      add(lr(nfq.format(l.qty) + ' x ' + money(l.price), money(l.sub)));
+    });
+    add(dash);
+    add(lr('TOTAL', rp(c.total)), { b: 1 });
+    if (c.pay > 0) {
+      add(lr('Tunai', rp(c.pay)));
+      add(c.diff >= 0 ? lr('Kembalian', rp(c.diff)) : lr('Kurang', rp(-c.diff)));
+    }
+    if (settings.footer.trim()) { add(dash); wrap(settings.footer.trim(), W).forEach((s) => add(s, { c: 1 })); }
+    return out;
+  }
+  const center = (s, W) => ' '.repeat(Math.max(0, Math.floor((W - s.length) / 2))) + s;
+  function plainText() { const W = cols(); return receiptLines(W).map((l) => l.c ? center(l.s, W) : l.s).join('\n'); }
+  function escpos() {
+    const b = [0x1b, 0x40];
+    receiptLines(cols()).forEach((l) => {
+      b.push(0x1b, 0x61, l.c ? 1 : 0, 0x1b, 0x45, l.b ? 1 : 0);
+      if (l.big) b.push(0x1d, 0x21, 0x11);
+      for (let i = 0; i < l.s.length; i++) b.push(l.s.charCodeAt(i));
+      b.push(0x0a);
+      if (l.big) b.push(0x1d, 0x21, 0x00);
+    });
+    b.push(0x1b, 0x61, 0, 0x1b, 0x45, 0, 0x0a, 0x0a, 0x0a, 0x0a);
+    return new Uint8Array(b);
+  }
+  const b64 = (bytes) => { let s = ''; for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]); return btoa(s); };
+
+  function renderNota() {
+    const W = cols();
+    $('#nota').className = 'nota p' + settings.paper;
+    $('#nota').innerHTML = receiptLines(W).map((l) => {
+      if (l.big) return '<div class="bigl" style="text-align:center">' + esc(l.s) + '</div>';
+      const s = esc(l.c ? center(l.s, W) : l.s);
+      return l.b ? '<b>' + s + '</b>' : s;
+    }).join('\n').replace(/<\/div>\n/g, '</div>');
+  }
+  function renderAll(list = true) {
+    const c = calc();
+    $('#total').textContent = rp(c.total);
+    const ch = $('#chg');
+    if (c.pay > 0) { ch.className = 'chg ' + (c.diff >= 0 ? 'ok' : 'short'); ch.textContent = c.diff >= 0 ? 'Kembalian ' + rp(c.diff) : 'Kurang ' + rp(-c.diff); }
+    else { ch.className = 'chg'; ch.textContent = ''; }
+    renderNota();
+    if (list) renderList();
+  }
+
+  /* ---------- gambar nota (PNG) ---------- */
+  function notaPng() {
+    /* lebar gambar = lebar kepala printer (58 mm = 384 titik, 80 mm = 576 titik), huruf tebal,
+       lalu dipaksa hitam-putih murni supaya printer thermal tidak membuat bintik abu-abu */
+    const W = cols(), lines = receiptLines(W), width = W === 32 ? 384 : 576, pd = 6;
+    const FONT = '"Roboto Mono", "Droid Sans Mono", ui-monospace, "Courier New", monospace';
+    const probe = document.createElement('canvas').getContext('2d');
+    let fs = 24;
+    for (; fs > 12; fs--) { probe.font = '700 ' + fs + 'px ' + FONT; if (probe.measureText('0'.repeat(W)).width <= width) break; }
+    const lh = Math.round(fs * 1.35);
+    const height = pd * 2 + lines.reduce((a, l) => a + (l.big ? lh * 2 : lh), 0) + lh * 2;
+    const cv = document.createElement('canvas');
+    cv.width = width; cv.height = height;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = '#000000'; ctx.textBaseline = 'middle';
+    let y = pd;
+    lines.forEach((l) => {
+      const hh = l.big ? lh * 2 : lh;
+      if (/^-+$/.test(l.s)) { ctx.fillRect(0, Math.round(y + hh / 2) - 1, width, 2); y += hh; return; }
+      ctx.font = '700 ' + (l.big ? fs * 2 : fs) + 'px ' + FONT;
+      ctx.textAlign = l.c ? 'center' : 'left';
+      ctx.fillText(l.s, l.c ? width / 2 : 0, y + hh / 2, width);
+      y += hh;
+    });
+    const img = ctx.getImageData(0, 0, width, height), px = img.data;
+    for (let i = 0; i < px.length; i += 4) {
+      const v = (px[i] * 299 + px[i + 1] * 587 + px[i + 2] * 114) / 1000 < 150 ? 0 : 255;
+      px[i] = px[i + 1] = px[i + 2] = v; px[i + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+    return new Promise((res) => cv.toBlob(res, 'image/png'));
+  }
+
+  /* ---------- tombol cetak ---------- */
+  const isEmpty = () => { if (!calc().lines.length) { say('Nota masih kosong. Tambahkan barang dulu.', true); return true; } return false; };
+
+  $('#rawbtBtn').addEventListener('click', () => {
+    if (isEmpty()) return;
+    if (!/Android/i.test(navigator.userAgent)) { say('RawBT hanya ada di HP Android. Di komputer pakai “Cetak lewat browser”.', true); return; }
+    let left = false;
+    const mark = () => { left = true; };
+    document.addEventListener('visibilitychange', mark, { once: true });
+    location.href = 'intent:base64,' + b64(escpos()) + '#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;';
+    setTimeout(() => {
+      document.removeEventListener('visibilitychange', mark);
+      if (!left) say('RawBT tidak terbuka. Pastikan RawBT sudah terpasang, atau pakai “Bagikan ke aplikasi lain”.', true);
+    }, 2500);
+  });
+
+  $('#shareBtn').addEventListener('click', async () => {
+    if (isEmpty()) return;
+    const name = 'nota-' + state.no + '.png';
+    try {
+      const blob = await notaPng();
+      const file = blob ? new File([blob], name, { type: 'image/png' }) : null;
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'Nota ' + state.no });
+        return;
+      }
+      if (navigator.share) { await navigator.share({ title: 'Nota ' + state.no, text: plainText() }); return; }
+      if (blob) {
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+        document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+        say('Browser ini tidak punya menu Bagikan, jadi gambar nota diunduh.');
+      }
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+      say('Gagal membagikan: ' + ((e && e.message) || 'tidak diketahui'), true);
+    }
+  });
+
+  $('#printBtn').addEventListener('click', () => {
+    if (isEmpty()) return;
+    const W = settings.paper === '58' ? '58mm' : settings.paper === '80' ? '80mm' : '148mm';
+    let st = document.getElementById('pageSize');
+    if (!st) { st = document.createElement('style'); st.id = 'pageSize'; document.head.append(st); }
+    st.textContent = '@page { size: ' + W + ' auto; margin: 3mm; }';
+    window.print();
+  });
+
+  $('#copyBtn').addEventListener('click', async () => {
+    if (isEmpty()) return;
+    try { await navigator.clipboard.writeText(plainText()); say('Teks nota tersalin.'); }
+    catch { say('Tidak bisa menyalin otomatis di browser ini.', true); }
+  });
+
+  let armed = false, armTimer;
+  $('#newBtn').addEventListener('click', function () {
+    const b = this;
+    const reset = () => { armed = false; clearTimeout(armTimer); b.textContent = 'Nota baru'; b.classList.remove('danger'); };
+    if (calc().lines.length && !armed) { armed = true; b.textContent = 'Yakin? Kosongkan nota'; b.classList.add('danger'); armTimer = setTimeout(reset, 3500); return; }
+    reset();
+    counter = counter.date === today() ? { date: counter.date, n: counter.n + 1 } : { date: today(), n: 1 };
+    store.set('k77.counter', counter);
+    state.no = noteNo(); state.when = new Date(); state.pay = ''; state.items = [];
+    $('#pay').value = '';
+    renderRows(); renderAll();
+    say('Nota baru siap: ' + state.no);
+  });
+
+  /* ---------- pengaturan kop ---------- */
+  const bindS = (id, key) => {
+    const el = $(id); el.value = settings[key];
+    el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', () => {
+      settings[key] = el.value; saveSettings();
+      if (key === 'name') $('#shopTitle').textContent = el.value || 'KIOS';
+      renderAll(false);
+    });
+  };
+  bindS('#sPaper', 'paper');
+
+  /* ---------- mulai ---------- */
+  $('#shopTitle').textContent = settings.name || 'KIOS';
+  $('#sheetLink').href = SHEET_URL;
+  $('#syncBtn').addEventListener('click', () => syncSheet(true));
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncSheet(false); });
+  store.set('k77.counter', counter);
+  setInterval(() => { if (!calc().lines.length) { state.when = new Date(); renderNota(); } }, 60000);
+  showMeta(); renderRows(); renderAll();
+  syncSheet(false);
+})();
+</script>
+</body>
+</html>
