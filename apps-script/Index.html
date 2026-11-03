@@ -69,12 +69,10 @@ main { padding-block: 16px 40px; }
 .tag { font: 700 14px var(--mono); background: var(--tag); color: var(--tag-ink); padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
 
 /* ---- dashboard ---- */
-.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
-@media (max-width: 760px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
 .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0; }
 .stat .lbl { font-size: 12px; color: var(--muted); font-weight: 600; }
 .stat .val { font: 700 22px/1.25 var(--mono); margin-top: 2px; overflow-wrap: anywhere; }
-.stat .val.sm { font-size: 15px; }
 .stat .sub { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
 .tools { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 8px; }
 @media (max-width: 520px) { .tools { grid-template-columns: minmax(0, 1fr); } }
@@ -198,8 +196,6 @@ details[open] summary { margin-bottom: 10px; }
     <div class="stats">
       <div class="stat"><div class="lbl">Jumlah barang</div><div class="val" id="stCount">0</div><div class="sub" id="stCountSub"></div></div>
       <div class="stat"><div class="lbl">Kategori</div><div class="val" id="stCat">0</div><div class="sub" id="stCatSub"></div></div>
-      <div class="stat"><div class="lbl">Rentang harga</div><div class="val sm" id="stRange">–</div><div class="sub" id="stRangeSub"></div></div>
-      <div class="stat"><div class="lbl">Terakhir diubah</div><div class="val sm" id="stLast">–</div><div class="sub" id="stLastSub"></div></div>
     </div>
 
     <section class="card">
@@ -401,13 +397,6 @@ details[open] summary { margin-bottom: 10px; }
   const BULAN = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
   const dateStr = (d) => d.getDate() + ' ' + BULAN[d.getMonth()] + ' ' + d.getFullYear();
   const timeStr = (iso) => { const d = new Date(iso); return isNaN(d) ? '' : pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); };
-  function ago(iso) {
-    const t = new Date(iso).getTime(); if (!t) return '';
-    const m = Math.round((Date.now() - t) / 60000);
-    if (m < 1) return 'baru saja'; if (m < 60) return m + ' menit lalu';
-    const h = Math.round(m / 60); if (h < 24) return h + ' jam lalu';
-    const d = Math.round(h / 24); return d < 31 ? d + ' hari lalu' : dateStr(new Date(t));
-  }
   function toast(msg) {
     const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
     document.body.append(t); setTimeout(() => t.remove(), 2200);
@@ -482,14 +471,6 @@ details[open] summary { margin-bottom: 10px; }
     $('#stCountSub').textContent = recent ? recent + ' diubah 3 hari terakhir' : 'semua dari tab Harga';
     $('#stCat').textContent = named.length;
     $('#stCatSub').textContent = cats[NO_CAT] ? cats[NO_CAT] + ' barang tanpa kategori' : 'semua barang berkategori';
-    if (PRICES.length) {
-      const byH = PRICES.slice().sort((a, b) => a.h - b.h), lo = byH[0], hi = byH[byH.length - 1];
-      $('#stRange').textContent = rp(lo.h) + ' – ' + rp(hi.h);
-      $('#stRangeSub').textContent = lo.n + ' s/d ' + hi.n;
-    } else { $('#stRange').textContent = '–'; $('#stRangeSub').textContent = ''; }
-    const last = PRICES.filter((p) => p.u).sort((a, b) => b.u.localeCompare(a.u))[0];
-    $('#stLast').textContent = last ? last.n : '–';
-    $('#stLastSub').textContent = last ? rp(last.h) + ' · ' + ago(last.u) : 'belum ada perubahan tercatat';
 
     // saringan kategori
     const chip = (val, label, n) => '<button type="button" class="chip" data-cat="' + esc(val) + '" aria-pressed="' + (catFilter === val) + '">' + esc(label) + '<span>' + n + '</span></button>';
