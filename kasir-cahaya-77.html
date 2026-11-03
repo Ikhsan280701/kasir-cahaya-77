@@ -62,6 +62,8 @@ main { padding-block: 16px 40px; }
 
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
 .card-head h2 { margin: 0; }
+.head-btns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+a.btn { text-decoration: none; color: inherit; }
 #priceCard.collapsed #q, #priceCard.collapsed #list { display: none; }
 .items { list-style: none; margin: 10px 0 0; padding: 0; max-height: 46vh; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; }
 .items li { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 12px; border-top: 1px solid var(--line); }
@@ -126,7 +128,8 @@ details[open] summary { margin-bottom: 10px; }
   <div class="app">
     <div class="col">
       <section class="card" id="priceCard">
-        <div class="card-head"><h2>Daftar harga</h2><button type="button" class="btn sm" id="togglePrices" aria-expanded="true" aria-controls="list">Ciutkan</button></div>
+        <div class="card-head"><h2>Daftar harga</h2><div class="head-btns"><a class="btn sm" id="addItemLink" href="#" target="_blank" rel="noopener" title="Buka tab Harga di Google Sheet untuk menambah barang">+ Tambah barang</a><button type="button" class="btn sm" id="togglePrices" aria-expanded="true" aria-controls="list">Ciutkan</button></div></div>
+        <p class="hint" id="addHint" hidden>Tambahkan baris barang baru di tab Harga, lalu kembali ke sini. Harga dimuat ulang otomatis.</p>
         <input id="q" type="search" placeholder="Cari barang…" aria-label="Cari barang" autocomplete="off">
         <ul class="items" id="list"></ul>
       </section>
@@ -558,6 +561,8 @@ details[open] summary { margin-bottom: 10px; }
   /* ---------- mulai ---------- */
   $('#shopTitle').textContent = settings.name || 'KIOS';
   $('#sheetLink').href = SHEET_URL;
+  $('#addItemLink').href = SHEET_URL.replace(/[#?].*$/, '') + '#gid=304591724';
+  $('#addItemLink').addEventListener('click', () => { $('#addHint').hidden = false; });
   $('#syncBtn').addEventListener('click', () => syncSheet(true));
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncSheet(false); });
   store.set('k77.counter', counter);
