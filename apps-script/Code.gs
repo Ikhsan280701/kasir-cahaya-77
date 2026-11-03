@@ -3,7 +3,7 @@
  *
  * Pasang (sekali saja):
  *  1. Buka Google Sheet "Daftar Harga Kios Cahaya 77" > menu Ekstensi > Apps Script.
- *  2. Code.gs: hapus isinya, tempel seluruh file ini, lalu ganti PIN di bawah.
+ *  2. Code.gs: hapus isinya, tempel seluruh file ini.
  *  3. Tombol + di samping "File" > HTML > beri nama  Index  (huruf I besar), hapus isinya,
  *     tempel seluruh isi file Index.html.
  *  4. Simpan, lalu Terapkan > Deployment baru > jenis "Aplikasi web"
@@ -17,10 +17,12 @@
  *  - Tab "Kios" : Nama kios, Alamat, Telepon / WA, Ucapan di bawah nota (kolom A label, kolom B isi)
  *
  * Tetap cocok dengan kasir GitHub Pages: alamat /exec?api=1 (atau ?t=...) mengembalikan JSON,
- * dan POST {action:'add', pin, n, h, s, k} menambah/memperbarui barang seperti sebelumnya.
+ * dan POST {action:'add', n, h, s, k} menambah/memperbarui barang seperti sebelumnya.
+ *
+ * Tanpa PIN: siapa pun yang memegang alamat /exec bisa menambah, mengubah, dan menghapus barang.
+ * Jangan sebarkan alamat itu ke luar orang kios.
  */
 
-const PIN = 'GANTI-PIN-INI'; // ganti dengan PIN Anda sendiri, mis. 4-6 angka. Jangan bagikan.
 const TAB_HARGA = 'Harga';
 const TAB_KIOS = 'Kios';
 
@@ -41,11 +43,10 @@ function doPost(e) {
   catch (err) { return json_({ ok: false, error: 'data' }); }
   if (d.action !== 'add') return json_({ ok: false, error: 'aksi' });
   try {
-    cekPin_(d.pin);
     const r = simpan_({ n: d.n, h: d.h, s: d.s, k: d.k });
     return json_(Object.assign({ ok: true, status: r.status, nama: r.nama }, readAll_()));
   } catch (err) {
-    return json_({ ok: false, error: /PIN/.test(err.message) ? 'pin' : 'isi' });
+    return json_({ ok: false, error: 'isi' });
   }
 }
 
@@ -56,14 +57,12 @@ function ambilData() {
 }
 
 /** item = { n: nama, h: harga, s: satuan, k: kategori, lama: nama lama kalau sedang mengubah } */
-function simpanBarang(item, pin) {
-  cekPin_(pin);
+function simpanBarang(item) {
   const r = simpan_(item || {});
   return Object.assign({ status: r.status, nama: r.nama }, readAll_());
 }
 
-function hapusBarang(nama, pin) {
-  cekPin_(pin);
+function hapusBarang(nama) {
   const key = norm_(nama);
   if (!key) throw new Error('Nama barang kosong.');
   const lock = LockService.getScriptLock();
@@ -149,11 +148,6 @@ function readAll_() {
 }
 
 /* ---------------- bantuan ---------------- */
-
-function cekPin_(pin) {
-  if (PIN === 'GANTI-PIN-INI') throw new Error('PIN belum diatur. Ubah konstanta PIN di Code.gs lalu terapkan versi baru.');
-  if (String(pin || '').trim() !== PIN) throw new Error('PIN salah.');
-}
 
 function sheet_(name) {
   const sh = SpreadsheetApp.getActive().getSheetByName(name);

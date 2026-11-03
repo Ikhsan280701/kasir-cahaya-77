@@ -313,11 +313,8 @@ details[open] summary { margin-bottom: 10px; }
       <label class="f">Satuan
         <input id="fUnit" list="unitList" autocomplete="off" placeholder="pcs">
       </label>
-      <label class="f">Kategori (boleh kosong)
+      <label class="f full">Kategori (boleh kosong)
         <input id="fCat" list="catList" autocomplete="off">
-      </label>
-      <label class="f">PIN
-        <input id="fPin" type="password" inputmode="numeric" autocomplete="off">
       </label>
     </div>
     <datalist id="unitList"></datalist><datalist id="catList"></datalist>
@@ -357,7 +354,7 @@ details[open] summary { margin-bottom: 10px; }
     if (!GAS) return DEMO[fn](...args);
     return new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...args));
   }
-  /* Mode contoh: hanya dipakai kalau file ini dibuka di luar Apps Script (untuk mencoba tampilan). PIN contoh 1234. */
+  /* Mode contoh: hanya dipakai kalau file ini dibuka di luar Apps Script (untuk mencoba tampilan). */
   const DEMO = (() => {
     const now = Date.now(), ago = (h) => new Date(now - h * 3600e3).toISOString();
     let rows = [
@@ -372,8 +369,7 @@ details[open] summary { margin-bottom: 10px; }
     const key = (s) => String(s || '').trim().toLowerCase();
     return {
       ambilData: () => out(),
-      simpanBarang: (it, pin) => {
-        if (pin !== '1234') return fail('PIN salah.');
+      simpanBarang: (it) => {
         const same = rows.findIndex((r) => key(r.n) === key(it.n));
         const at = it.lama ? rows.findIndex((r) => key(r.n) === key(it.lama)) : same;
         if (it.lama && same >= 0 && same !== at) return fail('Nama "' + it.n + '" sudah ada di daftar.');
@@ -381,8 +377,7 @@ details[open] summary { margin-bottom: 10px; }
         if (at >= 0) rows[at] = v; else rows.push(v);
         return out({ status: at >= 0 ? 'diperbarui' : 'ditambah', nama: it.n });
       },
-      hapusBarang: (n, pin) => {
-        if (pin !== '1234') return fail('PIN salah.');
+      hapusBarang: (n) => {
         rows = rows.filter((r) => key(r.n) !== key(n));
         return out({ status: 'dihapus', nama: n });
       }
@@ -546,12 +541,11 @@ details[open] summary { margin-bottom: 10px; }
     editing = p || null; delArmed = false;
     $('#itemTitle').textContent = p ? 'Ubah barang' : 'Tambah barang';
     $('#fName').value = p ? p.n : ''; $('#fPrice').value = p ? p.h : ''; $('#fUnit').value = p ? p.s : ''; $('#fCat').value = p ? p.k : (catFilter && catFilter !== NO_CAT ? catFilter : '');
-    $('#fPin').value = store.get('k77gs.pin', '');
     $('#fDel').hidden = !p; $('#fDel').textContent = 'Hapus barang'; $('#fDel').classList.remove('danger');
     const opts = (vals) => [...new Set(vals.filter(Boolean).map((v) => v.trim()))].sort((a, b) => a.localeCompare(b, 'id')).map((v) => '<option value="' + esc(v) + '">').join('');
     $('#unitList').innerHTML = opts(PRICES.map((x) => x.s.toLowerCase()));
     $('#catList').innerHTML = opts(PRICES.map((x) => x.k));
-    fMsg(GAS ? '' : 'Mode contoh: PIN 1234, perubahan tidak masuk ke Google Sheet.');
+    fMsg(GAS ? '' : 'Mode contoh: perubahan tidak masuk ke Google Sheet.');
     $('#itemDlg').hidden = false;
     $('#fName').focus();
   }
@@ -564,31 +558,20 @@ details[open] summary { margin-bottom: 10px; }
     if (hit && hit !== editing) fMsg(editing ? 'Nama ini sudah dipakai barang lain.' : 'Sudah ada di daftar (' + rp(hit.h) + ' per ' + hit.s + '). Kalau disimpan, harganya diperbarui.', editing ? 'bad' : '');
     else if (/^(Sudah ada|Nama ini)/.test($('#fMsg').textContent)) fMsg('');
   });
-  function pinOrAsk() {
-    const pin = $('#fPin').value.trim();
-    if (!pin) { fMsg('Isi PIN.', 'bad'); $('#fPin').focus(); }
-    return pin;
-  }
   function busy(on, label) {
     ['#fSave', '#fDel', '#fCancel'].forEach((s) => { $(s).disabled = on; });
     if (label) $('#fSave').textContent = on ? label : 'Simpan ke Google Sheet';
   }
-  function handleFail(e) {
-    const m = cleanErr(e);
-    if (/PIN salah/i.test(m)) { store.set('k77gs.pin', ''); $('#fPin').select(); }
-    fMsg(m, 'bad');
-  }
+  const handleFail = (e) => fMsg(cleanErr(e), 'bad');
   $('#itemForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const item = { n: $('#fName').value.trim().replace(/\s+/g, ' '), h: Math.round(Number($('#fPrice').value)), s: $('#fUnit').value.trim() || 'pcs', k: $('#fCat').value.trim() };
     if (editing) item.lama = editing.n;
     if (!item.n) { fMsg('Isi nama barang.', 'bad'); $('#fName').focus(); return; }
     if (!(item.h > 0)) { fMsg('Isi harga lebih dari 0.', 'bad'); $('#fPrice').focus(); return; }
-    const pin = pinOrAsk(); if (!pin) return;
     busy(true, 'Menyimpan…'); fMsg('');
     try {
-      const d = await call('simpanBarang', item, pin);
-      store.set('k77gs.pin', pin);
+      const d = await call('simpanBarang', item);
       applyData(d);
       const word = d.status === 'diperbarui' ? 'Diperbarui' : 'Ditambahkan';
       if (editing) { closeItem(); toast(word + ': ' + item.n + ', ' + rp(item.h)); }
@@ -601,12 +584,10 @@ details[open] summary { margin-bottom: 10px; }
   $('#fDel').addEventListener('click', async () => {
     if (!editing) return;
     if (!delArmed) { delArmed = true; $('#fDel').textContent = 'Yakin hapus? Ketuk lagi'; $('#fDel').classList.add('danger'); return; }
-    const pin = pinOrAsk(); if (!pin) return;
     const name = editing.n;
     busy(true); fMsg('Menghapus…');
     try {
-      const d = await call('hapusBarang', name, pin);
-      store.set('k77gs.pin', pin);
+      const d = await call('hapusBarang', name);
       applyData(d); closeItem(); toast('Dihapus: ' + name);
     } catch (err) { handleFail(err); } finally { busy(false); }
   });
