@@ -60,6 +60,9 @@ main { padding-block: 16px 40px; }
 .col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
 
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.card-head h2 { margin: 0; }
+#priceCard.collapsed #q, #priceCard.collapsed #list { display: none; }
 .items { list-style: none; margin: 10px 0 0; padding: 0; max-height: 46vh; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; }
 .items li { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 12px; border-top: 1px solid var(--line); }
 .items li:first-child { border-top: 0; }
@@ -122,8 +125,8 @@ details[open] summary { margin-bottom: 10px; }
 <main class="wrap">
   <div class="app">
     <div class="col">
-      <section class="card">
-        <h2>Daftar harga</h2>
+      <section class="card" id="priceCard">
+        <div class="card-head"><h2>Daftar harga</h2><button type="button" class="btn sm" id="togglePrices" aria-expanded="true" aria-controls="list">Ciutkan</button></div>
         <input id="q" type="search" placeholder="Cari barang…" aria-label="Cari barang" autocomplete="off">
         <ul class="items" id="list"></ul>
       </section>
@@ -294,6 +297,13 @@ details[open] summary { margin-bottom: 10px; }
   const qtyInNota = (name) => { const k = norm(name); return state.items.reduce((a, x) => a + (norm(x.name) === k ? num(x.qty) : 0), 0); };
 
   /* ---------- daftar harga ---------- */
+  function setPricesOpen(open) {
+    $('#priceCard').classList.toggle('collapsed', !open);
+    const b = $('#togglePrices'); b.textContent = open ? 'Ciutkan' : 'Tampilkan'; b.setAttribute('aria-expanded', String(open));
+    store.set('k77.pricesOpen', open);
+  }
+  $('#togglePrices').addEventListener('click', () => setPricesOpen($('#priceCard').classList.contains('collapsed')));
+  setPricesOpen(store.get('k77.pricesOpen', true));
   function renderList() {
     const q = norm($('#q').value);
     const list = PRICES.filter((p) => !q || norm(p.n).includes(q) || norm(p.k).includes(q));
