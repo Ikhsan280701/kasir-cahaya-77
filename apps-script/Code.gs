@@ -79,10 +79,41 @@ function hapusBarang(nama) {
   return Object.assign({ status: 'dihapus', nama: String(nama).trim() }, readAll_());
 }
 
+/** Hapus banyak barang sekaligus. namaList = daftar nama barang. */
+function hapusBanyak(namaList) {
+  const want = {};
+  (namaList || []).forEach(function (n) { const k = norm_(n); if (k) want[k] = true; });
+  if (!Object.keys(want).length) throw new Error('Belum ada barang yang dipilih.');
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  let jumlah = 0;
+  try {
+    const sh = sheet_(TAB_HARGA);
+    const last = sh.getLastRow();
+    const names = last > 1 ? sh.getRange(2, 1, last - 1, 1).getDisplayValues() : [];
+    const rows = [];
+    names.forEach(function (r, i) { if (want[norm_(r[0])]) rows.push(i + 2); });
+    if (!rows.length) throw new Error('Barang yang dipilih tidak ditemukan. Muat ulang data.');
+    // hapus dari bawah ke atas, baris yang berurutan dihapus sekaligus
+    let end = rows.length - 1;
+    while (end >= 0) {
+      let start = end;
+      while (start > 0 && rows[start - 1] === rows[start] - 1) start--;
+      sh.deleteRows(rows[start], end - start + 1);
+      end = start - 1;
+    }
+    jumlah = rows.length;
+    SpreadsheetApp.flush();
+  } finally {
+    lock.releaseLock();
+  }
+  return Object.assign({ status: 'dihapus', jumlah: jumlah }, readAll_());
+}
+
 /* ---------------- isi ---------------- */
 
 function simpan_(item) {
-  const nama = String(item.n || '').trim().replace(/\s+/g, ' ');
+  const nama = String(item.n || '').trim().replace(/\s+/g, ' ').toUpperCase(); // nama barang selalu huruf besar
   const harga = Math.round(Number(item.h));
   const satuan = String(item.s || '').trim() || 'pcs';
   const kategori = String(item.k || '').trim();

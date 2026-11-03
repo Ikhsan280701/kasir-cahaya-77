@@ -91,6 +91,15 @@ main { padding-block: 16px 40px; }
 .tbl .acts { display: flex; gap: 6px; justify-content: flex-end; }
 .new { display: inline-block; margin-left: 6px; font-size: 11px; font-weight: 700; color: var(--ok); }
 .tblwrap { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.tbl .c-sel { display: none; width: 44px; }
+.tbl.selecting .c-sel { display: table-cell; }
+.tbl.selecting .c-act { display: none; }
+.tbl.selecting tbody tr { cursor: pointer; }
+.tbl tr.picked, .tbl tr.picked td { background: var(--accent-soft); }
+.tbl input[type=checkbox] { width: 22px; height: 22px; padding: 0; margin: 0; accent-color: var(--accent); cursor: pointer; vertical-align: middle; }
+.bulkbar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; margin: 0 0 10px; background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 8px; }
+.bulkbar .cnt { flex: 1 1 auto; font-weight: 700; }
+@media (max-width: 640px) { .tbl.selecting tr { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; } }
 @media (max-width: 640px) {
   .tbl thead { display: none; }
   .tbl, .tbl tbody, .tbl tr, .tbl td { display: block; }
@@ -120,7 +129,9 @@ main { padding-block: 16px 40px; }
 .line { display: grid; grid-template-columns: 4rem .8rem minmax(0, 1fr) 2.6rem; gap: 6px 8px; align-items: center; padding: 10px; background: var(--bg); border-radius: 8px; }
 .line .name { grid-column: 1 / 4; text-transform: uppercase; }
 .line .x { text-align: center; color: var(--muted); }
-.line .st { grid-column: 1 / -1; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.line .st { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-variant-numeric: tabular-nums; }
+.line .st .un { color: var(--muted); font-size: 13px; }
+.line .st b { margin-left: auto; font-weight: 600; }
 .line input { background: var(--surface); }
 .line .del { min-height: 40px; padding: 0; font-size: 20px; }
 .sum { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); flex-wrap: wrap; }
@@ -135,6 +146,8 @@ main { padding-block: 16px 40px; }
 .fields .full { grid-column: 1 / -1; }
 @media (max-width: 460px) { .fields { grid-template-columns: 1fr; } }
 label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); font-weight: 500; }
+label.chk { flex-direction: row; align-items: center; gap: 10px; font-size: 14px; color: var(--ink); cursor: pointer; }
+label.chk input { width: 20px; height: 20px; padding: 0; margin: 0; flex: none; accent-color: var(--accent); }
 details summary { cursor: pointer; font-weight: 600; }
 details[open] summary { margin-bottom: 10px; }
 .help ol { margin: 6px 0 0; padding-left: 1.2rem; font-size: 14px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; }
@@ -156,24 +169,11 @@ details[open] summary { margin-bottom: 10px; }
 .imgbox img { max-width: 100%; height: auto; background: #fff; }
 .toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 8px; font-size: 14px; z-index: 40; max-width: calc(100vw - 32px); }
 
-/* ---- daftar harga untuk dicetak ---- */
-#printList { display: none; color: #000; background: #fff; font: 12px/1.35 system-ui, sans-serif; }
-#printList h1 { font-size: 22px; margin: 0; }
-#printList .pmeta { margin: 2px 0 10px; font-size: 12px; }
-#printList h4 { margin: 12px 0 4px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; border-bottom: 2px solid #000; padding-bottom: 2px; }
-#printList table { width: 100%; border-collapse: collapse; }
-#printList td { padding: 3px 4px; border-bottom: 1px solid #bbb; }
-#printList td.r { text-align: right; white-space: nowrap; font-weight: 700; }
-#printList .cols { columns: 2; column-gap: 10mm; }
-#printList .grp { break-inside: avoid; }
-
 @media print {
   body { background: #fff; }
   body.print-nota * { visibility: hidden !important; }
   body.print-nota #nota, body.print-nota #nota * { visibility: visible !important; }
   body.print-nota #nota { position: absolute; left: 0; top: 0; box-shadow: none; padding: 0; }
-  body.print-list > *:not(#printList) { display: none !important; }
-  body.print-list #printList { display: block; }
 }
 </style>
 </head>
@@ -203,8 +203,7 @@ details[open] summary { margin-bottom: 10px; }
         <h2>Daftar harga</h2>
         <div class="head-btns">
           <button type="button" class="btn sm primary" id="newItemBtn">+ Tambah barang</button>
-          <button type="button" class="btn sm" id="printListBtn">Cetak daftar harga</button>
-          <a class="btn sm ghost" id="sheetLink" href="#" target="_blank" rel="noopener">Buka Google Sheet</a>
+          <button type="button" class="btn sm" id="selModeBtn" aria-pressed="false">Pilih untuk hapus</button>
         </div>
       </div>
       <div class="tools">
@@ -217,9 +216,15 @@ details[open] summary { margin-bottom: 10px; }
         </select>
       </div>
       <div class="chips" id="chips" role="group" aria-label="Saring kategori"></div>
+      <div class="bulkbar" id="bulkBar" hidden>
+        <span class="cnt" id="bulkCnt">0 barang dipilih</span>
+        <button type="button" class="btn sm" id="bulkAll">Pilih semua yang tampil</button>
+        <button type="button" class="btn sm" id="bulkDel" disabled>Hapus terpilih</button>
+        <button type="button" class="btn sm ghost" id="bulkCancel">Batal</button>
+      </div>
       <div class="tblwrap">
-        <table class="tbl">
-          <thead><tr><th>Nama barang</th><th>Kategori</th><th>Satuan</th><th class="r">Harga</th><th class="r">Aksi</th></tr></thead>
+        <table class="tbl" id="dtbl">
+          <thead><tr><th class="c-sel"><input type="checkbox" id="selAll" aria-label="Pilih semua yang tampil"></th><th>Nama barang</th><th>Kategori</th><th>Satuan</th><th class="r">Harga</th><th class="r c-act">Aksi</th></tr></thead>
           <tbody id="dbody"></tbody>
         </table>
       </div>
@@ -286,6 +291,7 @@ details[open] summary { margin-bottom: 10px; }
               <label class="f full">Ukuran kertas
                 <select id="sPaper"><option value="58">Struk 58 mm</option><option value="80">Struk 80 mm</option><option value="A5">Kertas A5</option></select>
               </label>
+              <label class="f full chk"><input type="checkbox" id="sQty"> Tampilkan jumlah (qty) di nota</label>
             </div>
             <p class="hint">Nama kios, alamat, telepon, dan ucapan di bawah nota diambil dari tab <b>Kios</b> di Google Sheet.</p>
           </details>
@@ -301,7 +307,7 @@ details[open] summary { margin-bottom: 10px; }
     <h3 id="itemTitle">Tambah barang</h3>
     <div class="fields">
       <label class="f full">Nama barang
-        <input id="fName" autocomplete="off" placeholder="mis. Gula Pasir 1 kg">
+        <input id="fName" autocomplete="off" autocapitalize="characters" placeholder="mis. GULA PASIR 1 KG" style="text-transform:uppercase">
       </label>
       <label class="f">Harga (Rp)
         <input id="fPrice" type="number" inputmode="numeric" min="1" step="1" placeholder="0">
@@ -337,7 +343,6 @@ details[open] summary { margin-bottom: 10px; }
   </div>
 </div>
 
-<div id="printList"></div>
 
 <script>
 (() => {
@@ -373,6 +378,11 @@ details[open] summary { margin-bottom: 10px; }
         if (at >= 0) rows[at] = v; else rows.push(v);
         return out({ status: at >= 0 ? 'diperbarui' : 'ditambah', nama: it.n });
       },
+      hapusBanyak: (names) => {
+        const ks = names.map(key), before = rows.length;
+        rows = rows.filter((r) => !ks.includes(key(r.n)));
+        return out({ status: 'dihapus', jumlah: before - rows.length });
+      },
       hapusBarang: (n) => {
         rows = rows.filter((r) => key(r.n) !== key(n));
         return out({ status: 'dihapus', nama: n });
@@ -394,8 +404,6 @@ details[open] summary { margin-bottom: 10px; }
     get: (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
     set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   };
-  const BULAN = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-  const dateStr = (d) => d.getDate() + ' ' + BULAN[d.getMonth()] + ' ' + d.getFullYear();
   const timeStr = (iso) => { const d = new Date(iso); return isNaN(d) ? '' : pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); };
   function toast(msg) {
     const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
@@ -408,7 +416,7 @@ details[open] summary { margin-bottom: 10px; }
   let PRICES = store.get('k77gs.prices', []);
   let SYNCED = store.get('k77gs.at', '');
   const settings = Object.assign({ name: 'CAHAYA 77', address: '', phone: '', footer: 'Terima kasih, selamat berbelanja lagi' },
-    store.get('k77gs.kios', {}), { paper: store.get('k77gs.paper', '58') });
+    store.get('k77gs.kios', {}), { paper: store.get('k77gs.paper', '58'), showQty: store.get('k77gs.qty', true) !== false });
 
   function applyData(d) {
     const list = (d.prices || []).map((p) => ({ n: String(p.n || '').trim(), h: Math.round(Number(p.h)) || 0, s: String(p.s || '').trim() || 'pcs', k: String(p.k || '').trim(), u: p.u || '' }))
@@ -423,7 +431,6 @@ details[open] summary { margin-bottom: 10px; }
     };
     Object.assign(settings, kios);
     SYNCED = d.at || new Date().toISOString();
-    if (d.sheetUrl) $('#sheetLink').href = d.sheetUrl;
     store.set('k77gs.prices', PRICES); store.set('k77gs.kios', kios); store.set('k77gs.at', SYNCED);
     $('#shopTitle').textContent = settings.name || 'KIOS';
     showMeta(); renderDash(); renderAll();
@@ -464,6 +471,7 @@ details[open] summary { margin-bottom: 10px; }
     PRICES.forEach((p) => { cats[catOf(p)] = (cats[catOf(p)] || 0) + 1; });
     const named = Object.keys(cats).filter((c) => c !== NO_CAT).sort((a, b) => a.localeCompare(b, 'id'));
     if (catFilter && !cats[catFilter]) catFilter = '';
+    [...picked].forEach((k) => { if (!PRICES.some((p) => norm(p.n) === k)) picked.delete(k); });
 
     // ringkasan
     $('#stCount').textContent = nf.format(PRICES.length);
@@ -485,11 +493,13 @@ details[open] summary { margin-bottom: 10px; }
     else if (sort === 'mahal') list.sort((a, b) => b.h - a.h);
     else if (sort === 'baru') list.sort((a, b) => (b.u || '').localeCompare(a.u || '') || a.n.localeCompare(b.n, 'id'));
     if (!list.length) {
-      $('#dbody').innerHTML = '<tr><td colspan="5" class="none">' + (PRICES.length ? 'Tidak ada barang yang cocok.' : 'Belum ada data. Ketuk “Muat ulang”.') + '</td></tr>';
+      $('#dbody').innerHTML = '<tr><td colspan="6" class="none">' + (PRICES.length ? 'Tidak ada barang yang cocok.' : 'Belum ada data. Ketuk “Muat ulang”.') + '</td></tr>';
     } else {
       $('#dbody').innerHTML = list.map((p) => {
         const i = PRICES.indexOf(p), inN = qtyInNota(p.n);
-        return '<tr>' +
+        const on = picked.has(norm(p.n));
+        return '<tr data-i="' + i + '"' + (on ? ' class="picked"' : '') + '>' +
+          '<td class="c-sel"><input type="checkbox"' + (on ? ' checked' : '') + ' aria-label="Pilih ' + esc(p.n) + '"></td>' +
           '<td class="c-name"><span class="nm">' + esc(p.n) + '</span>' + (isRecent(p) ? '<span class="new">BARU DIUBAH</span>' : '') +
             '<span class="mobile-sub">per ' + esc(p.s) + (p.k ? ' · ' + esc(p.k) : '') + '</span></td>' +
           '<td class="c-cat muted">' + (p.k ? esc(p.k) : '–') + '</td>' +
@@ -502,6 +512,7 @@ details[open] summary { margin-bottom: 10px; }
       }).join('');
     }
     $('#dfoot').textContent = 'Menampilkan ' + list.length + ' dari ' + PRICES.length + ' barang.';
+    lastVisible = list; syncBulk();
   }
   $('#chips').addEventListener('click', (e) => {
     const c = e.target.closest('.chip'); if (!c) return;
@@ -511,8 +522,58 @@ details[open] summary { margin-bottom: 10px; }
   $('#dsort').value = store.get('k77gs.sort', 'nama');
   $('#dsort').addEventListener('change', () => { store.set('k77gs.sort', $('#dsort').value); renderTable(); });
   $('#dbody').addEventListener('click', (e) => {
+    if (selecting) { const tr = e.target.closest('tr[data-i]'); if (tr) { togglePick(PRICES[+tr.dataset.i]); renderTable(); } return; }
     const ed = e.target.closest('[data-edit]'); if (ed) { openItem(PRICES[+ed.dataset.edit]); return; }
     const nb = e.target.closest('[data-nota]'); if (nb) { addToNota(PRICES[+nb.dataset.nota]); renderTable(); }
+  });
+
+  /* ---------- pilih banyak barang untuk dihapus ---------- */
+  let selecting = false, bulkArmed = false, lastVisible = [];
+  const picked = new Set();
+  const visibleState = () => {
+    const n = lastVisible.filter((p) => picked.has(norm(p.n))).length;
+    return { all: lastVisible.length > 0 && n === lastVisible.length, some: n > 0 };
+  };
+  function syncBulk() {
+    const n = picked.size, v = visibleState(), del = $('#bulkDel');
+    $('#bulkCnt').textContent = n + ' barang dipilih';
+    del.disabled = !n;
+    if (!bulkArmed) del.textContent = n ? 'Hapus ' + n + ' barang' : 'Hapus terpilih';
+    $('#selAll').checked = v.all; $('#selAll').indeterminate = !v.all && v.some;
+    $('#bulkAll').textContent = v.all ? 'Batalkan yang tampil' : 'Pilih semua yang tampil';
+  }
+  function disarmBulk() { bulkArmed = false; $('#bulkDel').classList.remove('danger'); }
+  function setSelecting(on) {
+    selecting = on; picked.clear(); disarmBulk();
+    $('#dtbl').classList.toggle('selecting', on);
+    $('#bulkBar').hidden = !on;
+    $('#selModeBtn').textContent = on ? 'Selesai memilih' : 'Pilih untuk hapus';
+    $('#selModeBtn').setAttribute('aria-pressed', String(on));
+    renderTable();
+  }
+  function togglePick(p) { if (!p) return; const k = norm(p.n); if (picked.has(k)) picked.delete(k); else picked.add(k); disarmBulk(); }
+  function toggleVisible() {
+    const all = visibleState().all;
+    lastVisible.forEach((p) => { if (all) picked.delete(norm(p.n)); else picked.add(norm(p.n)); });
+    disarmBulk(); renderTable();
+  }
+  $('#selModeBtn').addEventListener('click', () => setSelecting(!selecting));
+  $('#bulkCancel').addEventListener('click', () => setSelecting(false));
+  $('#bulkAll').addEventListener('click', toggleVisible);
+  $('#selAll').addEventListener('change', toggleVisible);
+  $('#bulkDel').addEventListener('click', async () => {
+    const names = PRICES.filter((p) => picked.has(norm(p.n))).map((p) => p.n);
+    if (!names.length) return;
+    const b = $('#bulkDel');
+    if (!bulkArmed) { bulkArmed = true; b.classList.add('danger'); b.textContent = 'Yakin hapus ' + names.length + ' barang? Ketuk lagi'; return; }
+    b.disabled = true; b.textContent = 'Menghapus…';
+    try {
+      const d = await call('hapusBanyak', names);
+      applyData(d); setSelecting(false);
+      toast((d.jumlah || names.length) + ' barang dihapus dari Google Sheet');
+    } catch (err) {
+      disarmBulk(); renderTable(); toast('Gagal menghapus: ' + cleanErr(err));
+    }
   });
 
   /* ---------- formulir tambah / ubah / hapus barang ---------- */
@@ -546,7 +607,7 @@ details[open] summary { margin-bottom: 10px; }
   const handleFail = (e) => fMsg(cleanErr(e), 'bad');
   $('#itemForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const item = { n: $('#fName').value.trim().replace(/\s+/g, ' '), h: Math.round(Number($('#fPrice').value)), s: $('#fUnit').value.trim() || 'pcs', k: $('#fCat').value.trim() };
+    const item = { n: $('#fName').value.trim().replace(/\s+/g, ' ').toUpperCase(), h: Math.round(Number($('#fPrice').value)), s: $('#fUnit').value.trim() || 'pcs', k: $('#fCat').value.trim() };
     if (editing) item.lama = editing.n;
     if (!item.n) { fMsg('Isi nama barang.', 'bad'); $('#fName').focus(); return; }
     if (!(item.h > 0)) { fMsg('Isi harga lebih dari 0.', 'bad'); $('#fPrice').focus(); return; }
@@ -573,7 +634,7 @@ details[open] summary { margin-bottom: 10px; }
     } catch (err) { handleFail(err); } finally { busy(false); }
   });
 
-  /* ---------- cetak daftar harga ---------- */
+  /* ---------- jendela cetak ---------- */
   function doPrint(mode, pageCss) {
     let st = document.getElementById('pageSize');
     if (!st) { st = document.createElement('style'); st.id = 'pageSize'; document.head.append(st); }
@@ -584,21 +645,6 @@ details[open] summary { margin-bottom: 10px; }
     try { window.print(); } catch (e) { toast('Jendela cetak diblokir browser ini.'); }
     setTimeout(done, 1500);
   }
-  $('#printListBtn').addEventListener('click', () => {
-    const list = PRICES.filter((p) => !catFilter || catOf(p) === catFilter);
-    if (!list.length) { toast('Daftar harga kosong.'); return; }
-    const groups = {};
-    list.forEach((p) => { (groups[catOf(p)] = groups[catOf(p)] || []).push(p); });
-    const keys = Object.keys(groups).sort((a, b) => a === NO_CAT ? 1 : b === NO_CAT ? -1 : a.localeCompare(b, 'id'));
-    $('#printList').innerHTML =
-      '<h1>' + esc(settings.name || 'KIOS') + '</h1>' +
-      '<div class="pmeta">Daftar harga per ' + esc(dateStr(new Date())) + (settings.address ? ' · ' + esc(settings.address) : '') + (settings.phone ? ' · Telp/WA ' + esc(settings.phone) : '') + '</div>' +
-      '<div class="cols">' + keys.map((k) =>
-        '<div class="grp"><h4>' + esc(k === NO_CAT ? 'Lainnya' : k) + '</h4><table>' +
-        groups[k].map((p) => '<tr><td>' + esc(p.n) + '</td><td class="r">' + rp(p.h) + ' / ' + esc(p.s) + '</td></tr>').join('') +
-        '</table></div>').join('') + '</div>';
-    doPrint('print-list', '@page { size: A4; margin: 12mm; }');
-  });
 
   /* ================= KASIR & NOTA ================= */
   const today = () => { const d = new Date(); return '' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()); };
@@ -607,28 +653,31 @@ details[open] summary { margin-bottom: 10px; }
   store.set('k77gs.counter', counter);
   const noteNo = () => 'C77-' + counter.date + '-' + pad(counter.n, 3);
   let uid = 0;
-  const newItem = (name, qty, price) => ({ id: ++uid, name: name || '', qty: qty || 1, price: price || 0 });
+  const newItem = (name, qty, price, unit) => ({ id: ++uid, name: name || '', qty: qty || 1, price: price || 0, unit: unit || '' });
   const state = { no: noteNo(), when: new Date(), pay: '', items: [] };
 
+  // jumlah boleh dikosongkan: kosong dihitung 1
+  const qtyOf = (it) => String(it.qty == null ? '' : it.qty).trim() === '' ? 1 : num(it.qty);
   function calc() {
     const lines = state.items.filter((i) => i.name.trim() || num(i.price) > 0).map((i) => {
-      const q = num(i.qty), p = num(i.price);
-      return { name: i.name.trim() || 'BARANG', qty: q, price: p, sub: q * p };
+      const q = qtyOf(i), p = num(i.price);
+      return { name: i.name.trim() || 'BARANG', unit: String(i.unit || '').trim(), qty: q, price: p, sub: q * p };
     });
     const total = lines.reduce((a, l) => a + l.sub, 0), pay = num(state.pay);
-    return { lines, total, pay, diff: pay - total };
+    const qty = lines.reduce((a, l) => a + l.qty, 0);
+    return { lines, total, qty, pay, diff: pay - total };
   }
   const fmtWhen = () => { const d = state.when; return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); };
-  const qtyInNota = (name) => { const k = norm(name); return state.items.reduce((a, x) => a + (norm(x.name) === k ? num(x.qty) : 0), 0); };
+  const qtyInNota = (name) => { const k = norm(name); return state.items.reduce((a, x) => a + (norm(x.name) === k ? qtyOf(x) : 0), 0); };
 
   function addToNota(p) {
     if (!p) return;
     const name = p.n.toUpperCase();
     const ex = state.items.find((x) => norm(x.name) === norm(name) && num(x.price) === p.h);
     const empty = state.items.find((x) => !x.name.trim() && !num(x.price));
-    if (ex) ex.qty = num(ex.qty) + 1;
-    else if (empty) { empty.name = name; empty.price = p.h; empty.qty = 1; }
-    else state.items.push(newItem(name, 1, p.h));
+    if (ex) ex.qty = qtyOf(ex) + 1;
+    else if (empty) { empty.name = name; empty.price = p.h; empty.qty = 1; empty.unit = p.s; }
+    else state.items.push(newItem(name, 1, p.h, p.s));
     renderRows(); renderAll();
     toast('Masuk nota: ' + p.n + ' (' + nfq.format(qtyInNota(p.n)) + ')');
   }
@@ -653,24 +702,28 @@ details[open] summary { margin-bottom: 10px; }
       '<div class="line" data-id="' + it.id + '">' +
       '<input class="name" data-f="name" type="text" autocomplete="off" placeholder="Nama barang" aria-label="Nama barang" value="' + esc(it.name) + '">' +
       '<button type="button" class="btn del" data-act="del" aria-label="Hapus baris">×</button>' +
-      '<input data-f="qty" type="number" inputmode="decimal" min="0" step="any" placeholder="Jml" aria-label="Jumlah" value="' + (it.qty || '') + '">' +
+      '<input data-f="qty" type="number" inputmode="decimal" min="0" step="any" placeholder="1" aria-label="Jumlah (kosong = 1)" value="' + (it.qty || '') + '">' +
       '<span class="x">×</span>' +
       '<input data-f="price" type="number" inputmode="numeric" min="0" step="any" placeholder="Harga satuan" aria-label="Harga satuan" value="' + (it.price || '') + '" style="grid-column:3/5">' +
-      '<span class="st">' + rp(num(it.qty) * num(it.price)) + '</span></div>').join('');
+      '<div class="st"><span class="un">' + (it.unit ? 'per ' + esc(it.unit) : '') + '</span><b>' + rp(qtyOf(it) * num(it.price)) + '</b></div></div>').join('');
   }
   $('#rows').addEventListener('input', (e) => {
     const row = e.target.closest('.line'); if (!row || !e.target.dataset.f) return;
     const it = state.items.find((x) => x.id === +row.dataset.id); if (!it) return;
     it[e.target.dataset.f] = e.target.dataset.f === 'name' ? e.target.value.toUpperCase() : e.target.value;
-    row.querySelector('.st').textContent = rp(num(it.qty) * num(it.price));
+    row.querySelector('.st b').textContent = rp(qtyOf(it) * num(it.price));
     renderAll(false);
   });
   $('#rows').addEventListener('change', (e) => {
     if (e.target.dataset.f !== 'name') return;
     const row = e.target.closest('.line');
     const it = state.items.find((x) => x.id === +row.dataset.id);
-    const hit = it && PRICES.find((p) => norm(p.n) === norm(it.name));
-    if (hit && !num(it.price)) { it.price = hit.h; renderRows(); renderAll(); }
+    if (!it) return;
+    const hit = PRICES.find((p) => norm(p.n) === norm(it.name));
+    // satuan ikut barang di daftar; nama yang tidak ada di daftar tidak bersatuan
+    it.unit = hit ? hit.s : '';
+    if (hit && !num(it.price)) it.price = hit.h;
+    renderRows(); renderAll();
   });
   $('#rows').addEventListener('click', (e) => {
     const b = e.target.closest('[data-act=del]'); if (!b) return;
@@ -713,10 +766,19 @@ details[open] summary { margin-bottom: 10px; }
     add(dash);
     if (!c.lines.length) add('(belum ada barang)', { c: 1 });
     c.lines.forEach((l) => {
-      wrap(l.name, W).forEach((s) => add(s));
-      add(lr(nfq.format(l.qty) + ' x ' + money(l.price), money(l.sub)));
+      if (settings.showQty) {
+        wrap(l.name, W).forEach((s) => add(s));
+        const left = nfq.format(l.qty) + (l.unit ? ' ' + l.unit : '') + ' x ' + money(l.price), r = money(l.sub);
+        if (left.length + r.length + 1 <= W) add(lr(left, r));
+        else { wrap(left, W).forEach((s) => add(s)); add(lr('', r)); }
+      } else {
+        // tanpa jumlah: nama barang (satuan) dan subtotal di satu baris
+        const r = money(l.sub), nm = wrap(l.name + (l.unit ? ' (' + l.unit + ')' : ''), W - r.length - 1);
+        nm.forEach((s, i) => add(i === nm.length - 1 ? lr(s, r) : s));
+      }
     });
     add(dash);
+    if (settings.showQty && c.lines.length) add(lr('Total item', nfq.format(c.qty)));
     add(lr('TOTAL', rp(c.total)), { b: 1 });
     if (c.pay > 0) {
       add(lr('Tunai', rp(c.pay)));
@@ -863,6 +925,8 @@ details[open] summary { margin-bottom: 10px; }
 
   $('#sPaper').value = settings.paper;
   $('#sPaper').addEventListener('change', () => { settings.paper = $('#sPaper').value; store.set('k77gs.paper', settings.paper); renderAll(false); });
+  $('#sQty').checked = settings.showQty;
+  $('#sQty').addEventListener('change', () => { settings.showQty = $('#sQty').checked; store.set('k77gs.qty', settings.showQty); renderAll(false); });
 
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (!$('#itemDlg').hidden) closeItem(); if (!$('#imgDlg').hidden) closeImg(); } });
 
