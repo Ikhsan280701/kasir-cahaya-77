@@ -63,7 +63,9 @@ main { padding-block: 16px 40px; }
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
 .card-head h2 { margin: 0; }
 .head-btns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-a.btn { text-decoration: none; color: inherit; }
+.addform { margin: 0 0 12px; padding: 12px; background: var(--bg); border-radius: 8px; }
+.addform input { background: var(--surface); }
+#aMsg.ok { color: var(--ok); } #aMsg.bad { color: var(--danger); }
 #priceCard.collapsed #q, #priceCard.collapsed #list { display: none; }
 .items { list-style: none; margin: 10px 0 0; padding: 0; max-height: 46vh; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; }
 .items li { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 12px; border-top: 1px solid var(--line); }
@@ -128,8 +130,32 @@ details[open] summary { margin-bottom: 10px; }
   <div class="app">
     <div class="col">
       <section class="card" id="priceCard">
-        <div class="card-head"><h2>Daftar harga</h2><div class="head-btns"><a class="btn sm" id="addItemLink" href="#" target="_blank" rel="noopener" title="Buka tab Harga di Google Sheet untuk menambah barang">+ Tambah barang</a><button type="button" class="btn sm" id="togglePrices" aria-expanded="true" aria-controls="list">Ciutkan</button></div></div>
-        <p class="hint" id="addHint" hidden>Tambahkan baris barang baru di tab Harga, lalu kembali ke sini. Harga dimuat ulang otomatis.</p>
+        <div class="card-head"><h2>Daftar harga</h2><div class="head-btns"><button type="button" class="btn sm" id="addItemBtn" aria-expanded="false" aria-controls="addForm">+ Tambah barang</button><button type="button" class="btn sm" id="togglePrices" aria-expanded="true" aria-controls="list">Ciutkan</button></div></div>
+        <form id="addForm" class="addform" hidden novalidate>
+          <div class="fields">
+            <label class="f full">Nama barang
+              <input id="aName" autocomplete="off" placeholder="mis. Gula Pasir 1 kg">
+            </label>
+            <label class="f">Harga (Rp)
+              <input id="aPrice" type="number" inputmode="numeric" min="1" step="1" placeholder="0">
+            </label>
+            <label class="f">Satuan
+              <input id="aUnit" list="unitList" autocomplete="off" placeholder="pcs">
+            </label>
+            <label class="f">Kategori (boleh kosong)
+              <input id="aCat" list="catList" autocomplete="off">
+            </label>
+            <label class="f">PIN
+              <input id="aPin" type="password" inputmode="numeric" autocomplete="off">
+            </label>
+          </div>
+          <datalist id="unitList"></datalist><datalist id="catList"></datalist>
+          <div class="actions" style="margin-top:10px">
+            <button type="submit" class="btn primary" id="aSave">Simpan ke Google Sheet</button>
+            <button type="button" class="btn ghost" id="aCancel" style="flex:none">Tutup</button>
+          </div>
+          <p class="hint" id="aMsg" role="status" aria-live="polite"></p>
+        </form>
         <input id="q" type="search" placeholder="Cari barang…" aria-label="Cari barang" autocomplete="off">
         <ul class="items" id="list"></ul>
       </section>
@@ -183,8 +209,11 @@ details[open] summary { margin-bottom: 10px; }
             <label class="f full">Ukuran kertas
               <select id="sPaper"><option value="58">Struk 58 mm</option><option value="80">Struk 80 mm</option><option value="A5">Kertas A5</option></select>
             </label>
+            <label class="f full">Alamat skrip Google Sheet (Apps Script)
+              <input id="sScript" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec">
+            </label>
           </div>
-          <p class="hint">Harga barang ada di tab <b>Harga</b>, sedangkan nama kios, alamat, telepon, dan ucapan nota ada di tab <b>Kios</b> pada <a id="sheetLink" href="#" target="_blank" rel="noopener">Google Sheet daftar harga</a>. Ubah di sana, lalu ketuk “Muat ulang harga”.</p>
+          <p class="hint">Harga barang ada di tab <b>Harga</b>, sedangkan nama kios, alamat, telepon, dan ucapan nota ada di tab <b>Kios</b> pada <a id="sheetLink" href="#" target="_blank" rel="noopener">Google Sheet daftar harga</a>. Ubah di sana, lalu ketuk “Muat ulang harga”. Dengan alamat skrip terisi, barang bisa ditambah langsung dari kasir ini.</p>
         </details>
       </section>
     </div>
@@ -256,24 +285,44 @@ details[open] summary { margin-bottom: 10px; }
     const at = store.get('k77.syncedAt', null);
     $('#meta').textContent = PRICES.length + ' barang · ' + (note || (at ? 'harga dari Google Sheet, ' + timeStr(at) : 'harga per ' + META.tanggal));
   }
+  /* Skrip Apps Script di Sheet (opsional): membaca harga tanpa Sheet dibuka untuk umum, dan menerima barang baru. */
+  const SCRIPT_URL_DEFAULT = '';
+  const scriptUrl = () => (store.get('k77.scriptUrl', '') || SCRIPT_URL_DEFAULT).trim();
+  function applyData(rows, kvIn) {
+    const list = rows.map((p) => ({ n: String(p.n || '').trim(), h: Math.round(Number(p.h)) || 0, s: String(p.s || '').trim() || 'pcs', k: String(p.k || '').trim() }))
+      .filter((p) => p.n && p.h > 0).sort((a, b) => a.n.localeCompare(b.n, 'id'));
+    if (!list.length) throw new Error('kosong');
+    PRICES = list;
+    const kv = {}; Object.keys(kvIn || {}).forEach((key) => { kv[norm(key)] = String(kvIn[key] || '').trim(); });
+    const kios = { name: kv['nama kios'] || settings.name, address: kv['alamat'] ?? settings.address, phone: kv['telepon / wa'] ?? settings.phone, footer: kv['ucapan di bawah nota'] ?? settings.footer };
+    Object.assign(settings, kios);
+    store.set('k77.prices', PRICES); store.set('k77.kios', kios); store.set('k77.syncedAt', new Date().toISOString());
+    $('#shopTitle').textContent = settings.name || 'KIOS';
+    showMeta(); renderAll();
+  }
+  async function fetchFromScript(url) {
+    const r = await fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now(), { cache: 'no-store' });
+    const d = await r.json();
+    if (!d || !d.ok) throw new Error('skrip');
+    return d;
+  }
   let syncing = false;
   async function syncSheet(manual) {
     if (syncing) return; syncing = true; $('#syncBtn').disabled = true; $('#syncBtn').textContent = 'Memuat…';
+    const url = scriptUrl();
     try {
-      const [h, k] = await Promise.all([getCsv('Harga'), getCsv('Kios', 'A1:B20')]);
-      const list = h.slice(1).map((r) => ({ n: (r[0] || '').trim(), h: toNum(r[1]), s: (r[2] || '').trim() || 'pcs', k: (r[3] || '').trim() }))
-        .filter((p) => p.n && p.h > 0).sort((a, b) => a.n.localeCompare(b.n, 'id'));
-      if (!list.length) throw new Error('kosong');
-      PRICES = list;
-      const kv = {}; k.slice(1).forEach((r) => { if (r[0]) kv[norm(r[0])] = (r[1] || '').trim(); });
-      const kios = { name: kv['nama kios'] || settings.name, address: kv['alamat'] ?? settings.address, phone: kv['telepon / wa'] ?? settings.phone, footer: kv['ucapan di bawah nota'] ?? settings.footer };
-      Object.assign(settings, kios);
-      store.set('k77.prices', PRICES); store.set('k77.kios', kios); store.set('k77.syncedAt', new Date().toISOString());
-      $('#shopTitle').textContent = settings.name || 'KIOS';
-      showMeta(); renderAll();
+      if (url) {
+        const d = await fetchFromScript(url);
+        applyData(d.prices || [], d.kios || {});
+      } else {
+        const [h, k] = await Promise.all([getCsv('Harga'), getCsv('Kios', 'A1:B20')]);
+        const kv = {}; k.slice(1).forEach((r) => { if (r[0]) kv[r[0]] = r[1] || ''; });
+        applyData(h.slice(1).map((r) => ({ n: r[0], h: toNum(r[1]), s: r[2], k: r[3] })), kv);
+      }
       if (manual) toast('Harga diperbarui dari Google Sheet');
     } catch (e) {
-      const msg = e && e.message === 'akses' ? 'Google Sheet belum dibuka untuk dibaca' : 'harga terbaru belum bisa diambil (cek internet, atau akses Google Sheet)';
+      const msg = url ? 'skrip Google Sheet tidak bisa dihubungi (cek internet atau alamat skrip di Pengaturan)'
+        : e && e.message === 'akses' ? 'Google Sheet belum dibuka untuk dibaca' : 'harga terbaru belum bisa diambil (cek internet, atau akses Google Sheet)';
       showMeta('memakai data tersimpan, ' + msg);
       if (manual) say('Gagal memuat: ' + msg + '. Kasir tetap jalan dengan data tersimpan.', true);
     } finally { syncing = false; $('#syncBtn').disabled = false; $('#syncBtn').textContent = 'Muat ulang harga'; }
@@ -561,8 +610,59 @@ details[open] summary { margin-bottom: 10px; }
   /* ---------- mulai ---------- */
   $('#shopTitle').textContent = settings.name || 'KIOS';
   $('#sheetLink').href = SHEET_URL;
-  $('#addItemLink').href = SHEET_URL.replace(/[#?].*$/, '') + '#gid=304591724';
-  $('#addItemLink').addEventListener('click', () => { $('#addHint').hidden = false; });
+  { const el = $('#sScript'); el.value = store.get('k77.scriptUrl', '') || SCRIPT_URL_DEFAULT;
+    el.addEventListener('change', () => {
+      const v = el.value.trim();
+      if (v && !/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec/.test(v)) { el.value = store.get('k77.scriptUrl', '') || SCRIPT_URL_DEFAULT; toast('Alamat skrip harus diawali https://script.google.com/macros/s/ dan diakhiri /exec'); return; }
+      store.set('k77.scriptUrl', v); toast(v ? 'Alamat skrip disimpan' : 'Alamat skrip dikosongkan'); syncSheet(true);
+    }); }
+
+  /* ---------- tambah barang ke Google Sheet ---------- */
+  function addMsg(text, kind) { const m = $('#aMsg'); m.textContent = text; m.className = 'hint' + (kind ? ' ' + kind : ''); }
+  function openAddForm(open) {
+    $('#addForm').hidden = !open; $('#addItemBtn').setAttribute('aria-expanded', String(open));
+    if (!open) return;
+    if ($('#priceCard').classList.contains('collapsed')) setPricesOpen(true);
+    const opts = (vals) => [...new Set(vals.filter(Boolean).map((v) => v.trim()))].sort((a, b) => a.localeCompare(b, 'id')).map((v) => '<option value="' + esc(v) + '">').join('');
+    $('#unitList').innerHTML = opts(PRICES.map((p) => p.s.toLowerCase()));
+    $('#catList').innerHTML = opts(PRICES.map((p) => p.k));
+    $('#aPin').value = store.get('k77.pin', '');
+    addMsg(scriptUrl() ? '' : 'Skrip Google Sheet belum dipasang: isi dulu “Alamat skrip” di Pengaturan.', scriptUrl() ? '' : 'bad');
+    $('#aName').focus();
+  }
+  $('#addItemBtn').addEventListener('click', () => openAddForm($('#addForm').hidden));
+  $('#aCancel').addEventListener('click', () => openAddForm(false));
+  $('#aName').addEventListener('input', () => {
+    const hit = PRICES.find((p) => norm(p.n) === norm($('#aName').value));
+    if (hit) addMsg('Sudah ada di daftar (' + rp(hit.h) + ' per ' + hit.s + '). Kalau disimpan, harganya diperbarui.');
+    else if ($('#aMsg').textContent.startsWith('Sudah ada')) addMsg('');
+  });
+  $('#addForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const url = scriptUrl();
+    const item = { n: $('#aName').value.trim().replace(/\s+/g, ' '), h: Math.round(Number($('#aPrice').value)), s: $('#aUnit').value.trim() || 'pcs', k: $('#aCat').value.trim() };
+    const pin = $('#aPin').value.trim();
+    if (!url) { addMsg('Skrip Google Sheet belum dipasang: isi dulu “Alamat skrip” di Pengaturan.', 'bad'); return; }
+    if (!item.n) { addMsg('Isi nama barang.', 'bad'); $('#aName').focus(); return; }
+    if (!(item.h > 0)) { addMsg('Isi harga lebih dari 0.', 'bad'); $('#aPrice').focus(); return; }
+    if (!pin) { addMsg('Isi PIN.', 'bad'); $('#aPin').focus(); return; }
+    const btn = $('#aSave'); btn.disabled = true; btn.textContent = 'Menyimpan…'; addMsg('');
+    try {
+      const r = await fetch(url, { method: 'POST', body: JSON.stringify(Object.assign({ action: 'add', pin }, item)) });
+      const d = await r.json();
+      if (!d.ok) {
+        if (d.error === 'pin') { store.set('k77.pin', ''); addMsg('PIN salah. Cek PIN di skrip Google Sheet.', 'bad'); $('#aPin').select(); }
+        else addMsg('Gagal menyimpan (' + (d.error || 'tidak diketahui') + ').', 'bad');
+        return;
+      }
+      store.set('k77.pin', pin);
+      applyData(d.prices || [], d.kios || {});
+      addMsg((d.status === 'diperbarui' ? 'Harga diperbarui: ' : 'Tersimpan di Google Sheet: ') + item.n + ', ' + rp(item.h) + ' per ' + item.s + '.', 'ok');
+      $('#aName').value = ''; $('#aPrice').value = ''; $('#aCat').value = ''; $('#aName').focus();
+    } catch (err) {
+      addMsg('Tidak bisa menghubungi skrip Google Sheet. Cek internet dan alamat skrip di Pengaturan.', 'bad');
+    } finally { btn.disabled = false; btn.textContent = 'Simpan ke Google Sheet'; }
+  });
   $('#syncBtn').addEventListener('click', () => syncSheet(true));
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncSheet(false); });
   store.set('k77.counter', counter);
